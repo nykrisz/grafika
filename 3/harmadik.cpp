@@ -39,10 +39,10 @@ vector<Bullets> bulletsInAir;
 void genLeftSide() {
 	int z = 0, p = 0;
 	
-	for (int i = 7; i >= 0; i--, z -= 10) {
+	for (int i = 0; i < 7; i++, z -= 9) {
 		p = 0;
-		for (int j = 0; j < 7 - i; j++, p += 10) {
-			bullet.coord = { float(j+5+p), float(i+75+z) };
+		for (int j = i; j >= 0; j--, p -= 9) {
+			bullet.coord = { float(j + p + 5 + -z), float(53 + i + z) };
 			bulletsVector.push_back(bullet);
 		}
 	}
@@ -50,17 +50,18 @@ void genLeftSide() {
 
 void genRightSide() {
 	int z = 0, p = 0;
-	
-	for (int i = 7; i >= 0; i--, z += 10) {
+
+	for (int i = 0; i < 7; i++, z -= 10 ) {
 		p = 0;
-		for (int j = 0; j < i; j++, p -= 10) {
-			bullet.coord = { float(j + winWidth - 5 + p), float(i + z) };
+		for (int j = i; j >= 0; j--, p += 10) {
+			bullet.coord = { float(j + p + winWidth - 5 + z), float(60 + i + z) };
 			bulletsVector.push_back(bullet);
 		}
 	}
 }
 
-void coutPoints() {
+void drawAmmo() {
+	glColor3f(0.0, 0.0, 0.0);
 	for (int i = 0; i < bulletsVector.size(); i++) {
 		glBegin(GL_POINTS);
 			glVertex2f(bulletsVector[i].coord.x, bulletsVector[i].coord.y);
@@ -72,6 +73,7 @@ void init(){
 	glClearColor(1.0, 1.0, 1.0, 0.0);
 	glMatrixMode(GL_PROJECTION);
 	glPointSize(6.0);
+	glEnable(GL_POINT_SMOOTH);
 	glLineWidth(1.0);
 	genLeftSide();
 	genRightSide();
@@ -107,7 +109,7 @@ void ellipse(vec2 O, GLdouble a, GLdouble b){
 	glEnd();
 }
 
-void agyu() {
+void cannon() {
 	glColor3f(0.0, 0.0, 1.0);
 	
 	glBegin(GL_POLYGON);
@@ -136,7 +138,7 @@ void shot() {
 	bulletsInAir.push_back(bullet);
 }
 
-void drawAirB() {
+void drawBulletsInAir() {
 	glBegin(GL_POINTS);
 		for (int i = 0; i < bulletsInAir.size(); i++) {
 			glVertex2f(float(bulletsInAir[i].coord.x), float(bulletsInAir[i].coord.y));
@@ -151,40 +153,62 @@ void display(){
 	semicircle(centerHalfCircle, radius);
 	ellipse(centerEllipse, ellipseWidth, ellipseHeight);
 	glLineWidth(3.0f);
-	agyu();
-	coutPoints();
-	drawAirB();
+	cannon();
+	drawAmmo();
+	drawBulletsInAir();
 	
 	glutSwapBuffers();
 }
 
-void update(int n){
+void ufoMove() {
 	centerEllipse.x += uSpeed;
 	centerHalfCircle.x += uSpeed;
 
 	if (centerEllipse.x + ellipseWidth > winWidth || centerEllipse.x - ellipseWidth < 0) {
 		uSpeed *= -1.0f;
-		if(abs(uSpeed) < maxSpeed)
+		if (abs(uSpeed) < maxSpeed)
 			uSpeed += uSpeed * 0.2f;
 	}
-	
-	
+}
 
+void endGame() {
+	if (counter == 10) {
+		//cout << "win" << endl;
+		glClearColor(0.0, 1.0, 0.0, 0.0);
+	}
+	else if (bulletsVector.size() == 0 && bulletsInAir.size() == 0 && counter < 10) {
+		//cout << "lose" << endl;
+		glClearColor(1.0, 0.0, 0.0, 0.0);
+	}
+}
+
+void ufoHit() {
 	for (int i = 0; i < bulletsInAir.size(); i++) {
 		if ((pow((bulletsInAir[i].coord.x - centerEllipse.x), 2) / pow(ellipseWidth, 2)) + (pow((bulletsInAir[i].coord.y - centerEllipse.y), 2) / pow(ellipseHeight, 2)) - 1 < 0
-		  || pow((bulletsInAir[i].coord.x - centerHalfCircle.x), 2) + pow((bulletsInAir[i].coord.y - centerHalfCircle.y), 2) - pow(radius, 2) < 0) {
+			|| pow((bulletsInAir[i].coord.x - centerHalfCircle.x), 2) + pow((bulletsInAir[i].coord.y - centerHalfCircle.y), 2) - pow(radius, 2) < 0) {
 			bulletsInAir.erase(bulletsInAir.begin() + i);
-			cout << "talalt" << endl;
+			//cout << "talalt" << endl;
 			gr -= 0.1f;		bl -= 0.1f;
 			counter++;
-			cout << counter << endl;
+			//cout << counter << endl;
+		}
+		else if (bulletsInAir[i].coord.x > winWidth || bulletsInAir[i].coord.x < 0 || bulletsInAir[i].coord.y > winHeight ) {
+			bulletsInAir.erase(bulletsInAir.begin() + i);
+			//cout << "left window" << endl;
 		}
 	}
+}
+
+void update(int n){
+	ufoMove();
+
+	ufoHit();
 	
+	endGame();
+
 	glutPostRedisplay();
 
 	glutTimerFunc(5, update, 0);
-
 }
 
 void keyboard(unsigned char key, int x, int y)
@@ -194,7 +218,7 @@ void keyboard(unsigned char key, int x, int y)
 		exit(0);
 		break;
 	case 'g':
-		glClearColor(0.0, 1.0, 0.0, 0.0);
+		
 		break;
 	}
 }
@@ -205,6 +229,8 @@ void processMouse(GLint button, GLint action, GLint xMouse, GLint yMouse){
 			bulletsVector.erase(bulletsVector.begin());
 
 			shot();
+			//cout << bulletsInAir.size() << endl;
+			//cout << bulletsVector.size() << endl;
 		}
 	}
 
