@@ -13,9 +13,9 @@ vec2 centerEllipse = { winWidth * 1/3 , winHeight * 4/5};
 vec2 centerHalfCircle = { float(centerEllipse.x), float(centerEllipse.y + ellipseHeight - 1) };
 vec2 nV = {};
 
+int start = 0, mouseMov = 0;
 int counter = 0;
 GLfloat red = 1.0f, gr = 1.0f, bl = 1.0f;
-//vec2 base[4] = { {winWidth / 2 - 20, 0}, {winWidth / 2 + 20, 0}, {winWidth / 2 + 20, 20}, {winWidth / 2 - 20, 20} };
 
 GLfloat uSpeed = 0.8, maxSpeed = 2;
 GLint mouseX, mouseY;
@@ -35,14 +35,13 @@ vector<Bullets> bulletsVector;
 
 vector<Bullets> bulletsInAir;
 
-
 void genLeftSide() {
 	int z = 0, p = 0;
 	
 	for (int i = 0; i < 7; i++, z -= 9) {
 		p = 0;
 		for (int j = i; j >= 0; j--, p -= 9) {
-			bullet.coord = { float(j + p + 5 + -z), float(53 + i + z) };
+			bullet.coord = { float(j + p + 5 + -z), float(54 + i + z) };
 			bulletsVector.push_back(bullet);
 		}
 	}
@@ -69,54 +68,14 @@ void drawAmmo() {
 	}
 }
 
-void init(){
-	glClearColor(1.0, 1.0, 1.0, 0.0);
-	glMatrixMode(GL_PROJECTION);
-	glPointSize(6.0);
-	glEnable(GL_POINT_SMOOTH);
-	glLineWidth(1.0);
-	genLeftSide();
-	genRightSide();
-	gluOrtho2D(0.0, winWidth, 0.0, winHeight);
-	glShadeModel(GL_FLAT);
-}
-
-void semicircle(vec2 O, GLdouble r){
-	glColor3f(0.0, 0.0, 1.0);
-	glBegin(GL_LINE_LOOP);
-	for (GLdouble t = 0; t <= pi(); t += 0.01)
-		glVertex2d(O.x + r * cos(t), O.y + r * sin(t));
-	glEnd();
-
-	glColor3f(red, gr, bl);
-	glBegin(GL_POLYGON);
-	for (GLdouble t = 0; t <= pi(); t += 0.01)
-		glVertex2d(O.x + r * cos(t), O.y + r * sin(t));
-	glEnd();
-}
-
-void ellipse(vec2 O, GLdouble a, GLdouble b){
-	glColor3f(0.0, 0.0, 1.0);
-	glBegin(GL_LINE_LOOP);
-	for (GLdouble t = 0; t <= 2 * pi(); t += 0.01)
-		glVertex2d(O.x + a * cos(t), O.y + b * sin(t));
-	glEnd();
-
-	glColor3f(red, gr, bl);
-	glBegin(GL_POLYGON);
-	for (GLdouble t = 0; t <= 2 * pi(); t += 0.01)
-		glVertex2d(O.x + a * cos(t), O.y + b * sin(t));
-	glEnd();
-}
-
 void cannon() {
 	glColor3f(0.0, 0.0, 1.0);
-	
+
 	glBegin(GL_POLYGON);
-		glVertex2f(winWidth/2 - 20, 0);
-		glVertex2f(winWidth / 2 + 20, 0);
-		glVertex2f(winWidth / 2 + 20, 20);
-		glVertex2f(winWidth / 2 - 20, 20);
+	glVertex2f(winWidth / 2 - 20, 0);
+	glVertex2f(winWidth / 2 + 20, 0);
+	glVertex2f(winWidth / 2 + 20, 20);
+	glVertex2f(winWidth / 2 - 20, 20);
 	glEnd();
 
 	//iranyvektor
@@ -126,10 +85,84 @@ void cannon() {
 	//x
 	nV *= 30;
 	glBegin(GL_LINES);
-		glVertex2f(winWidth/2, 20);
-		glVertex2f(winWidth / 2 + nV.x, 20 + nV.y);
+	glVertex2f(winWidth / 2, 20);
+	glVertex2f(winWidth / 2 + nV.x, 20 + nV.y);
 	glEnd();
 
+}
+
+void semicircle(vec2 O, GLdouble r) {
+	glLineWidth(1.0);
+	glColor3f(red, gr, bl);
+	glBegin(GL_POLYGON);
+	for (GLdouble t = 0; t <= pi(); t += 0.01)
+		glVertex2d(O.x + r * cos(t), O.y + r * sin(t));
+	glEnd();
+	
+	glColor3f(0.0, 0.0, 1.0);
+	glBegin(GL_LINE_LOOP);
+	for (GLdouble t = 0; t <= pi(); t += 0.01)
+		glVertex2d(O.x + r * cos(t), O.y + r * sin(t));
+	glEnd();
+}
+
+void ellipse(vec2 O, GLdouble a, GLdouble b) {
+	glLineWidth(1.0);
+	glColor3f(red, gr, bl);
+	glBegin(GL_POLYGON);
+	for (GLdouble t = 0; t <= 2 * pi(); t += 0.01)
+		glVertex2d(O.x + a * cos(t), O.y + b * sin(t));
+	glEnd();
+
+	glColor3f(0.0, 0.0, 1.0);
+	glBegin(GL_LINE_LOOP);
+	for (GLdouble t = 0; t <= 2 * pi(); t += 0.01)
+		glVertex2d(O.x + a * cos(t), O.y + b * sin(t));
+	glEnd();
+}
+
+void drawUfo() {
+	semicircle(centerHalfCircle, radius);
+	ellipse(centerEllipse, ellipseWidth, ellipseHeight);
+}
+
+void startGame() {
+	glClearColor(1.0, 1.0, 1.0, 0.0);
+	radius = 20;
+	ellipseWidth = 50, ellipseHeight = 17;
+
+	winWidth = 800, winHeight = 600;
+	centerEllipse = { winWidth * 1 / 3 , winHeight * 4 / 5 };
+	centerHalfCircle = { float(centerEllipse.x), float(centerEllipse.y + ellipseHeight - 1) };
+	nV = {};
+
+	start = 0;
+	counter = 0;
+	red = 1.0f, gr = 1.0f, bl = 1.0f;
+	
+	uSpeed = 0.8;
+	maxSpeed = 2;
+	
+	bulletsInAir.clear();
+	bulletsVector.clear();
+
+	genLeftSide();
+	genRightSide();
+	drawUfo();
+	cannon();
+	drawAmmo();
+	glutPostRedisplay();
+}
+
+void init(){
+	glClearColor(1.0, 1.0, 1.0, 0.0);
+	glMatrixMode(GL_PROJECTION);
+	glPointSize(6.0);
+	glEnable(GL_POINT_SMOOTH);
+	
+	startGame();
+	gluOrtho2D(0.0, winWidth, 0.0, winHeight);
+	glShadeModel(GL_FLAT);
 }
 
 void shot() {
@@ -150,11 +183,11 @@ void drawBulletsInAir() {
 void display(){
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	semicircle(centerHalfCircle, radius);
-	ellipse(centerEllipse, ellipseWidth, ellipseHeight);
+	drawUfo();
 	glLineWidth(3.0f);
 	cannon();
 	drawAmmo();
+	
 	drawBulletsInAir();
 	
 	glutSwapBuffers();
@@ -171,14 +204,25 @@ void ufoMove() {
 	}
 }
 
+void endHelp() {
+	uSpeed = 0;
+	for (int i = 0; i < bulletsInAir.size(); i++) {
+		bulletsInAir[i].speed = 0;
+	}
+	start = 0;
+	mouseMov = 0;
+}
+
 void endGame() {
 	if (counter == 10) {
 		//cout << "win" << endl;
 		glClearColor(0.0, 1.0, 0.0, 0.0);
+		endHelp();
 	}
 	else if (bulletsVector.size() == 0 && bulletsInAir.size() == 0 && counter < 10) {
 		//cout << "lose" << endl;
-		glClearColor(1.0, 0.0, 0.0, 0.0);
+		glClearColor(1.0, 1.0, 0.0, 0.0);
+		endHelp();
 	}
 }
 
@@ -190,7 +234,6 @@ void ufoHit() {
 			//cout << "talalt" << endl;
 			gr -= 0.1f;		bl -= 0.1f;
 			counter++;
-			//cout << counter << endl;
 		}
 		else if (bulletsInAir[i].coord.x > winWidth || bulletsInAir[i].coord.x < 0 || bulletsInAir[i].coord.y > winHeight ) {
 			bulletsInAir.erase(bulletsInAir.begin() + i);
@@ -199,47 +242,47 @@ void ufoHit() {
 	}
 }
 
-void update(int n){
-	ufoMove();
-
-	ufoHit();
-	
-	endGame();
-
-	glutPostRedisplay();
-
-	glutTimerFunc(5, update, 0);
-}
-
-void keyboard(unsigned char key, int x, int y)
-{
+void keyboard(unsigned char key, int x, int y){
 	switch (key) {
 	case 27:
 		exit(0);
 		break;
-	case 'g':
-		
+	case 'p':
+		start = 1;
+		mouseMov = 1;
+		break;
+	case 'r':
+		startGame();
 		break;
 	}
 }
 
+void update(int n){
+	if (start == 1) {
+		ufoMove();
+		ufoHit();
+		endGame();
+		glutPostRedisplay();
+	}
+
+	glutTimerFunc(5, update, 0);
+}
+
 void processMouse(GLint button, GLint action, GLint xMouse, GLint yMouse){
-	if (button == GLUT_LEFT_BUTTON && action == GLUT_DOWN) {
+	if (button == GLUT_LEFT_BUTTON && action == GLUT_DOWN && start == 1) {
 		if (bulletsVector.size() != 0) {
 			bulletsVector.erase(bulletsVector.begin());
 
 			shot();
-			//cout << bulletsInAir.size() << endl;
-			//cout << bulletsVector.size() << endl;
 		}
 	}
-
 }
 
 void processMousePassiveMotion(GLint xMouse, GLint yMouse){
-	mouseX = xMouse;
-	mouseY = winHeight - yMouse;
-	glutPostRedisplay();
+		mouseX = xMouse;
+		mouseY = winHeight - yMouse;
+		if (mouseMov == 1) 
+			glutPostRedisplay();
 }
 
 int main(int argc, char** argv)
