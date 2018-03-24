@@ -2,6 +2,8 @@
 #include "bevgrafmath2017.h"
 #include <iostream>
 
+using namespace std;
+
 GLsizei winWidth = 800, winHeight = 600;
 GLint dragged = -1;
 //b1
@@ -32,7 +34,7 @@ vec2 points[18] = { P0, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, 
 vec2 e0;
 
 float tmod = 0.5;
-
+int showP = -1, showL = -1, showDc = -1;
 GLfloat t0 = -1, t1 = -0.5, t2 = 1;
 mat24 G;
 
@@ -43,7 +45,7 @@ mat4 M = { t0*t0*t0, t1*t1*t1, t2*t2*t2, 3 * (t2 * t2),
 
 void init()
 {
-	glClearColor(1.0, 1.0, 1.0, 0.0);
+	glClearColor(0.6, 0.9, 1.0, 0.0);
 	glMatrixMode(GL_PROJECTION);
 	gluOrtho2D(0.0, winWidth, 0.0, winHeight);
 	glShadeModel(GL_FLAT);
@@ -53,20 +55,48 @@ void init()
 	glLineStipple(1, 0xFF00);
 }
 
+void drawBackground() {
+	glColor3f(0.4, 1.0, 0.5);
+	glBegin(GL_POLYGON);
+		glVertex2f(0, 0);
+		glVertex2f(0, winHeight / 4);
+		glVertex2f(winWidth, winHeight / 4);
+		glVertex2f(winWidth, 0);
+	glEnd();
+}
+
 void bern_p() {
 	glColor3f(0.0, 0.0, 1.0);
-	glBegin(GL_POINTS);
-	for (int i = 0; i < 13; ++i) {
-		glVertex2f(points[i].x, points[i].y);
+	if (showP == 1) {
+		glBegin(GL_POINTS);
+		for (int i = 0; i < 13; ++i) {
+			glVertex2f(points[i].x, points[i].y);
+		}
+		glEnd();
 	}
+
+
+	glColor3f(0.0, 0.0, 0.0);
+	if (showL == 1) {
+		glBegin(GL_LINE_LOOP);
+		for (int i = 0; i < 13; i++) {
+			glVertex2f(points[i].x, points[i].y);
+		}
+		glEnd();
+	}
+
+	glColor3f(0.0, 0.0, 1.0);
+	glBegin(GL_LINES);
+		glVertex2f(points[9].x, points[9].y);
+		glVertex2f(points[10].x, points[10].y);
 	glEnd();
 
 	glColor3f(0.0, 0.0, 0.0);
-	glBegin(GL_LINE_LOOP);
-	for (int i = 0; i < 13; i++) {
-		glVertex2f(points[i].x, points[i].y);
-	}
+	glBegin(GL_LINES);
+		glVertex2f(points[12].x, points[12].y);
+		glVertex2f(points[0].x, points[0].y);
 	glEnd();
+
 }
 
 int factorial(int n) {
@@ -81,7 +111,7 @@ void bezier_bern_first() {
 	vec2 tmp[4] = { points[0], points[1], points[2], points[3] };
 	GLint n = 3;
 
-	glColor3f(0.0, 1.0, 0.0);
+	glColor3f(0.5, 0.1, 0.1);
 	glBegin(GL_LINE_STRIP);
 	for (GLfloat t = 0; t < 1; t += 0.01) {
 
@@ -104,7 +134,7 @@ void bezier_bern_second() {
 	vec2 tmp[4] = { points[3], points[4], points[5], points[6] };
 	GLint n = 3;
 
-	glColor3f(0.0, 1.0, 0.0);
+	glColor3f(0.9, 0.0, 0.0);
 	glBegin(GL_LINE_STRIP);
 	for (GLfloat t = 0; t < 1; t += 0.01) {
 
@@ -127,7 +157,7 @@ void bezier_bern_third() {
 	vec2 tmp[4] = { points[6], points[7], points[8], points[9] };
 	GLint n = 3;
 
-	glColor3f(0.0, 1.0, 0.0);
+	glColor3f(1.0, 0.4, 0.0);
 	glBegin(GL_LINE_STRIP);
 	for (GLfloat t = 0; t < 1; t += 0.01) {
 
@@ -166,7 +196,7 @@ void hermite() {
 	mat4 M_ = inverse(M);
 	mat24 C = G * M_;
 
-	glColor3f(1.0, 0.0, 0.0);
+	glColor3f(1.0, 0.8, 0.0);
 	glBegin(GL_LINE_STRIP);
 	for (GLfloat t = t0; t <= t2; t += 0.01) {
 		vec4 T = { t*t*t, t*t, t, 1 };
@@ -174,32 +204,28 @@ void hermite() {
 		glVertex2f(curvePoints.x, curvePoints.y);
 	}
 	glEnd();
+
 }
 
 void decast_p() {
 	vec2 pts[] = { points[13], points[14], points[15], points[16], points[17] };
+	//alsopont
+	vec2 dlPoint = { points[17].x - points[13].x,points[17].y - points[13].y };
+	dlPoint = normalize(dlPoint);
+
 	int gen = 0;
 	float t = tmod;
 
 	for (int i = 0; i < 4; i++) {
-		// Kirajzoljuk az akutális generációhoz tartozó pontokat
-		glColor3f(0.90, 0.30, 0.0);
-		glBegin(GL_POINTS);
-		for (int j = 0; j < 5 - gen; j++) {
-			glVertex2f(pts[j].x, pts[j].y);
-		}
-
-		glEnd();
-
 		// Összekötjük az akutális generációhoz tartozó pontokat
-		glColor3f(0.0, 0.0, 0.0);
-		glBegin(GL_LINE_STRIP);
-		for (int j = 0; j < 5 - gen; j++) {
-			glVertex2f(pts[j].x, pts[j].y);
+		glColor3f(0.0, 0.0, 1.0);
+		if (showDc == 1) {
+			glBegin(GL_LINE_STRIP);
+			for (int j = 0; j < 5 - gen; j++) {
+				glVertex2f(pts[j].x, pts[j].y);
+			}
+			glEnd();
 		}
-
-		glEnd();
-
 		// Kiszámoljuk a következõ generációt.
 		for (int j = 0; j < 5 - gen - 1; j++) {
 			pts[j].x = (1 - t) * pts[j].x + t * pts[j + 1].x;
@@ -209,16 +235,24 @@ void decast_p() {
 		gen++;
 	}
 
-	glColor3f(1.0, 0.0, 1.0);
-	glBegin(GL_POINTS);
-	for (int i = 13; i < 18; i++) {
-		glVertex2f(points[i].x, points[i].y);
+	glColor3f(0.0, 0.0, 1.0);
+	if (showP == 1) {
+		glBegin(GL_POINTS);
+		for (int i = 13; i < 18; i++) {
+			glVertex2f(points[i].x, points[i].y);
+		}
+		glEnd();
 	}
-	glEnd();
-
 	glColor3f(1.0, 0.0, 0.0);
+	if(showDc == 1){
+		glBegin(GL_POINTS);
+			glVertex2f(pts[0].x, pts[0].y);
+		glEnd();
+	}
+	//alsopont
+	//cout << dlPoint.x << " " << dlPoint.y << endl;
 	glBegin(GL_POINTS);
-		glVertex2f(pts[0].x, pts[0].y);
+	glVertex2f(pts[0].x + dlPoint.x, pts[0].y + dlPoint.y);
 	glEnd();
 
 }
@@ -243,12 +277,46 @@ void bezier_decast() {
 	decast_p();
 }
 
+void circle(vec2 O, GLdouble r) {
+	glColor3f(0.75, 0.75, 0.75);
+	glBegin(GL_POLYGON);
+	for (GLdouble t = 0; t <= 2 * pi(); t += 0.01)
+		glVertex2d(O.x + r * cos(t), O.y + r * sin(t));
+	glEnd();
+}
+
+void ten(vec2 O, GLdouble r) {
+	glColor3f(0.0, 0.0, 0.0);
+	glBegin(GL_POLYGON);
+	for (GLdouble t = 0; t <= 2 * pi(); t += 2 * pi() / 10)
+		glVertex2d(O.x + r * cos(t), O.y + r * sin(t));
+	glEnd();
+}
+
+void wheels() {
+	float radius = 50;
+
+	vec2 leftWheel = { (points[12].x - points[0].x) * 1 / 4, (points[12].y - points[0].y) * 1 / 4 };
+	vec2 rightWheel = { (points[12].x - points[0].x) * 3/4, (points[12].y - points[0].y) * 3/4 };
+	
+	leftWheel += points[0];
+	rightWheel += points[0];
+
+	circle(leftWheel, radius);
+	circle(rightWheel, radius);
+	
+	ten(leftWheel, 30);
+	ten(rightWheel, 30);
+}
+
 void display()
 {
 	glClear(GL_COLOR_BUFFER_BIT);
+	drawBackground();
 	bezier_bern_third();
 	hermite();
 	bezier_decast();
+	wheels();
 	glutSwapBuffers();
 }
 
@@ -266,7 +334,15 @@ void keyboard(unsigned char key, int x, int y)
 		if (tmod > 0.01)
 			tmod -= 0.01;
 		break;
-
+	case 'p':
+		showP *= -1;
+		break;
+	case 'l':
+		showL *= -1;
+		break;
+	case 'd':
+		showDc *= -1;
+		break;
 	}
 	glutPostRedisplay();
 }
