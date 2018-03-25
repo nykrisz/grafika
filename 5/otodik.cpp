@@ -30,8 +30,7 @@ vec2 P15 = { 300, 405 };
 vec2 P16 = { 410, 400 };
 vec2 P17 = { 480, 325 };
 
-vec2 points[18] = { P0, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17};
-vec2 e0;
+vec2 points[16] = { P0, P1, P2, P3, P5, P6, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17};
 
 float tmod = 0.5;
 int showP = -1, showL = -1, showDc = -1;
@@ -69,9 +68,13 @@ void bern_p() {
 	glColor3f(0.0, 0.0, 1.0);
 	if (showP == 1) {
 		glBegin(GL_POINTS);
-		for (int i = 0; i < 13; ++i) {
+		for (int i = 0; i < 11; ++i) {
 			glVertex2f(points[i].x, points[i].y);
 		}
+		glColor3f(1.0, 0.0, 1.0);
+		glVertex2f(P7.x, P7.y);
+		glVertex2f(P4.x, P4.y);
+	
 		glEnd();
 	}
 
@@ -79,21 +82,29 @@ void bern_p() {
 	glColor3f(0.0, 0.0, 0.0);
 	if (showL == 1) {
 		glBegin(GL_LINE_LOOP);
-		for (int i = 0; i < 13; i++) {
+		for (int i = 0; i < 4; i++) {
 			glVertex2f(points[i].x, points[i].y);
 		}
+		glVertex2f(P4.x, P4.y);
+		glVertex2f(points[4].x, points[4].y);
+		glVertex2f(points[5].x, points[5].y);
+		glVertex2f(P7.x, P7.y);
+		for (int i = 6; i < 11; i++) {
+			glVertex2f(points[i].x, points[i].y);
+		}
+
 		glEnd();
 	}
 
 	glColor3f(0.0, 0.0, 1.0);
 	glBegin(GL_LINES);
-		glVertex2f(points[9].x, points[9].y);
-		glVertex2f(points[10].x, points[10].y);
+		glVertex2f(points[7].x, points[7].y);
+		glVertex2f(points[8].x, points[8].y);
 	glEnd();
 
 	glColor3f(0.0, 0.0, 0.0);
 	glBegin(GL_LINES);
-		glVertex2f(points[12].x, points[12].y);
+		glVertex2f(points[10].x, points[10].y);
 		glVertex2f(points[0].x, points[0].y);
 	glEnd();
 
@@ -131,7 +142,9 @@ void bezier_bern_first() {
 }
 
 void bezier_bern_second() {
-	vec2 tmp[4] = { points[3], points[4], points[5], points[6] };
+	//n( Sn - Sn-1 )
+	P4 = { points[3].x + 0.75f * (points[3].x - points[2].x) , points[3].y + 0.75f * (points[3].y - points[2].y) };
+	vec2 tmp[4] = { points[3], P4, points[4], points[5] };
 	GLint n = 3;
 
 	glColor3f(0.9, 0.0, 0.0);
@@ -154,7 +167,8 @@ void bezier_bern_second() {
 }
 
 void bezier_bern_third() {
-	vec2 tmp[4] = { points[6], points[7], points[8], points[9] };
+	P7 = { points[5].x + 0.75f * (points[5].x - points[4].x) , points[5].y + 0.75f * (points[5].y - points[4].y) };
+	vec2 tmp[4] = { points[5], P7, points[6], points[7] };
 	GLint n = 3;
 
 	glColor3f(1.0, 0.4, 0.0);
@@ -182,9 +196,9 @@ void bezier_bern_third() {
 }
 
 void hermite() {
-	e0 = { points[9].x - points[10].x, points[9].y - points[10].y };
+	vec2 e0 = { points[7].x - points[8].x, points[7].y - points[8].y };
 	
-	vec2 tmp[4] = { points[12], points[11], points[10], e0 };
+	vec2 tmp[4] = { points[10], points[9], points[8], e0 };
 
 	for (int i = 0; i < 2; i++) {
 		for (int j = 0; j < 4; j++) {
@@ -208,10 +222,7 @@ void hermite() {
 }
 
 void decast_p() {
-	vec2 pts[] = { points[13], points[14], points[15], points[16], points[17] };
-	//alsopont
-	vec2 dlPoint = { points[17].x - points[13].x,points[17].y - points[13].y };
-	dlPoint = normalize(dlPoint);
+	vec2 pts[] = { points[11], points[12], points[13], points[14], points[15] };
 
 	int gen = 0;
 	float t = tmod;
@@ -238,7 +249,7 @@ void decast_p() {
 	glColor3f(0.0, 0.0, 1.0);
 	if (showP == 1) {
 		glBegin(GL_POINTS);
-		for (int i = 13; i < 18; i++) {
+		for (int i = 11; i < 16; i++) {
 			glVertex2f(points[i].x, points[i].y);
 		}
 		glEnd();
@@ -247,19 +258,16 @@ void decast_p() {
 	if(showDc == 1){
 		glBegin(GL_POINTS);
 			glVertex2f(pts[0].x, pts[0].y);
+			//alsopont
+			vec2 dlPoint = (1 - t) * points[11] + t * points[15];
+			glVertex2f(dlPoint.x, dlPoint.y);
 		glEnd();
 	}
-	//alsopont
-	//cout << dlPoint.x << " " << dlPoint.y << endl;
-	glBegin(GL_POINTS);
-	glVertex2f(pts[0].x + dlPoint.x, pts[0].y + dlPoint.y);
-	glEnd();
-
 }
 
 void bezier_decast() {
 	
-	vec2 tmp[5] = { points[13], points[14], points[15], points[16], points[17] };
+	vec2 tmp[5] = { points[11], points[12], points[13], points[14], points[15] };
 
 	glColor3f(0.0, 0.0, 1.0);
 	glBegin(GL_LINE_LOOP);
@@ -296,8 +304,8 @@ void ten(vec2 O, GLdouble r) {
 void wheels() {
 	float radius = 50;
 
-	vec2 leftWheel = { (points[12].x - points[0].x) * 1 / 4, (points[12].y - points[0].y) * 1 / 4 };
-	vec2 rightWheel = { (points[12].x - points[0].x) * 3/4, (points[12].y - points[0].y) * 3/4 };
+	vec2 leftWheel = { (points[10].x - points[0].x) * 1 / 4, (points[10].y - points[0].y) * 1 / 4 };
+	vec2 rightWheel = { (points[10].x - points[0].x) * 3/4, (points[10].y - points[0].y) * 3/4 };
 	
 	leftWheel += points[0];
 	rightWheel += points[0];
@@ -371,7 +379,7 @@ void processMouse(GLint button, GLint action, GLint xMouse, GLint yMouse)
 {
 	GLint i;
 	if (button == GLUT_LEFT_BUTTON && action == GLUT_DOWN)
-		if ((i = getActivePoint1(points, 18, 8, xMouse, winHeight - yMouse)) != -1)
+		if ((i = getActivePoint1(points, 16, 8, xMouse, winHeight - yMouse)) != -1)
 			dragged = i;
 	if (button == GLUT_LEFT_BUTTON && action == GLUT_UP)
 		dragged = -1;
