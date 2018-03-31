@@ -17,7 +17,7 @@ GLint outxMouse, outyMouse;
 vec2 s = { 1, 1 };
 float t = 0;
 vec2 eltol = { 0,0 };
-int sizeTenTimes = 0;
+int sizeTenTimes = 1;
 int counter = 0;
 vector<vec3> todraw;
 vector<vector<vec3>> finalform;
@@ -25,7 +25,7 @@ vector<vec3> rgb;
 
 void init()
 {
-	glClearColor(1.0, 1.0, 1.0, 1.0);
+	glClearColor(1.0, 1.0, 1.0, 0.0);
 	glMatrixMode(GL_PROJECTION);
 	gluOrtho2D(0.0, winWidth, 0.0, winHeight);
 	glShadeModel(GL_FLAT);
@@ -33,7 +33,6 @@ void init()
 	srand(time(0));
 	glPointSize(7.0);
 	glLineWidth(1.4f);
-	glLineStipple(1, 0xFF00);
 }
 
 void calc(vec2 O, GLfloat r) {
@@ -41,7 +40,7 @@ void calc(vec2 O, GLfloat r) {
 	vec3 firstSquareSecondPoint = { O.x + r * cos(pi() / 4 + 2 * pi() / 4), O.y + r * sin(pi() / 4 + 2 * pi() / 4), 0 };
 
 	todraw.clear();
-	if (sizeTenTimes == 1) {
+	if (sizeTenTimes == 0) {
 
 		//origoba tol
 		mat3 transToO = translate(-1 * O + eltol);
@@ -73,7 +72,7 @@ void calc(vec2 O, GLfloat r) {
 			rgb.push_back(vec3((float) (rand()) / (float) (RAND_MAX), (float)(rand()) / (float)(RAND_MAX), (float)(rand()) / (float)(RAND_MAX)));
 		}
 		else {
-			sizeTenTimes = 0;
+			sizeTenTimes = 1;
 		}
 
 		sort(finalform.begin() + counter, finalform.end(), [](vector<vec3> a, vector<vec3> b) {
@@ -103,9 +102,7 @@ void drawSquare() {
 
 void display()
 {
-//	glClear(GL_COLOR_BUFFER_BIT);
 	if (draw == 1) {
-		calc(vec2(outxMouse, outyMouse), radius);
 		drawSquare();
 	}
 	glutSwapBuffers();
@@ -139,7 +136,7 @@ void processMouse(GLint button, GLint action, GLint xMouse, GLint yMouse) {
 		s = { 1, 1 };
 		t = 0;
 		eltol = { 0,0 };
-		sizeTenTimes = 1;
+		sizeTenTimes = 0;
 		outxMouse = xMouse;
 		outyMouse = winHeight - yMouse;
 		draw = 1;
@@ -153,7 +150,9 @@ void processMouse(GLint button, GLint action, GLint xMouse, GLint yMouse) {
 
 void update(int n) {
 	glutPostRedisplay();
-	
+	if (draw == 1) {
+		calc(vec2(outxMouse, outyMouse), radius);
+	}
 	glutTimerFunc(5, update, 0);
 }
 
