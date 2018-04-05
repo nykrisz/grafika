@@ -63,7 +63,7 @@ void drawCoordSystem() {
 }
 
 void firstFunction() {
-	//wTv = windowToViewport2(windowPosition, windowSize, vec2(10, winHeight / 2 - 10), viewportSize);
+	wTv = windowToViewport2(windowPosition, windowSize, vec2(10, winHeight / 2 - 10), viewportSize);
 	glColor3f(1.0, 0.0, 0.0);
 	glBegin(GL_LINE_STRIP);
 	for (float i = -1; i < 1; i += 0.01) {
@@ -131,7 +131,18 @@ void thirdFunction() {
 }
 
 void fourthFunction() {
-	wTv = windowToViewport2(vec2(-1.5 * pi(), -1.5 * pi()), vec2(6 * pi(), 6 * pi()), vec2(10, winHeight / 2 - 10), viewportSize);
+	//wTv = windowToViewport2(windowPosition, windowSize, viewportPosition, viewportSize);
+	/*
+		vec2 points[4] = { {100, 100}, {-100, 100}, {-100, -100}, {100, -100} };
+
+		vec2 windowPosition = { -100, -100 };
+		vec2 windowSize = {200, 200};
+
+		windowPosition: bal alsó sarok
+		windowSize: két sarok távolsága 
+	*/
+	glLineWidth(1.0);
+	wTv = windowToViewport2(vec2(-1.5*pi() + -2.5 * pi(), -1.5*pi()+ -2.5 * pi()), vec2(2 * (1.5 * pi() + 2.5 * pi()), 2 * (1.5 * pi() + 2.5 * pi())), vec2(10, winHeight / 2 - 10), viewportSize);
 	glColor3f(0.0, 1.0, 1.0);
 	glBegin(GL_LINE_STRIP);
 	for (float i = -1.5 * pi(); i < 2.5 * pi(); i += 0.01) {
