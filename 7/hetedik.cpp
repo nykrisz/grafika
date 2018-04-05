@@ -5,17 +5,9 @@
 
 using namespace std;
 
-GLfloat winWidth = 800, winHeight = 600;
-
-vec2 windowSize = { 2, 2 };
-vec2 windowPosition = { -1, -1 };
+GLfloat winWidth = 640, winHeight = 640;
 
 vec2 viewportSize = { 300, 300 };
-vec2 viewportPosition = { 0, winHeight / 2 };
-
-vec2 coordSystemPoints[8] = { {0, winHeight / 2}, {winWidth, winHeight / 2}, {winWidth / 2, 0}, {winWidth / 2, winHeight}
-							, {0, 0}, {winWidth, 0}, {winWidth, winHeight}, {0, winHeight} };
-vec2 drawPoints[8] = {};
 
 mat3 wTv;
 
@@ -26,12 +18,15 @@ void init() {
 	glShadeModel(GL_FLAT);
 	glEnable(GL_POINT_SMOOTH);
 	glPointSize(5.0);
-	glLineWidth(2.0);
-
+	glLineWidth(1.2f);
 }
 
-void coordSystem() {
-	mat3 wTv2 = windowToViewport2(vec2(0,0), vec2(800,600), vec2(10, winHeight / 2 - 10), viewportSize);
+void coordSystem(vec2 viewportPos) {
+	vec2 coordSystemPoints[8] = { { 0, winHeight / 2 },{ winWidth, winHeight / 2 },{ winWidth / 2, 0 },{ winWidth / 2, winHeight }
+									,{ 0, 0 },{ winWidth, 0 },{ winWidth, winHeight },{ 0, winHeight } };
+	vec2 drawPoints[8] = {};
+
+	mat3 wTv2 = windowToViewport2(vec2(0, 0), vec2(winWidth, winHeight), viewportPos, viewportSize);
 
 	for (int i = 0; i < 8; i++) {
 		vec3 pointH = ihToH(coordSystemPoints[i]);
@@ -41,10 +36,7 @@ void coordSystem() {
 			drawPoints[i] = { result.x, result.y };
 		}
 	}
-}
 
-void drawCoordSystem() {
-	coordSystem();
 	glColor3f(1.0, 1.0, 1.0);
 	glBegin(GL_LINES);
 	glVertex2f(drawPoints[0].x, drawPoints[0].y);
@@ -62,8 +54,11 @@ void drawCoordSystem() {
 	glEnd();
 }
 
+
 void firstFunction() {
-	wTv = windowToViewport2(windowPosition, windowSize, vec2(10, winHeight / 2 - 10), viewportSize);
+	coordSystem(vec2(10, winHeight / 2 + 10 ));
+	//
+	wTv = windowToViewport2(vec2(-1,-1), vec2(2,2), vec2(10, winHeight / 2 + 10), viewportSize);
 	glColor3f(1.0, 0.0, 0.0);
 	glBegin(GL_LINE_STRIP);
 	for (float i = -1; i < 1; i += 0.01) {
@@ -78,21 +73,24 @@ void firstFunction() {
 }
 
 void secondFunction() {
-	wTv = windowToViewport2(vec2(-5,-5), vec2(10,10), vec2(10, winHeight / 2 - 10), viewportSize);
-	glColor3f(1.0, 0.0, 0.0);
+	coordSystem(vec2(winWidth / 2 + 10, winHeight / 2 + 10));
+	//
+	wTv = windowToViewport2(vec2(-5,-5), vec2(10,10), vec2(winWidth / 2 + 10, winHeight / 2 + 10), viewportSize);
+	glColor3f(0.75, 0.75, 0.0);
 	glBegin(GL_LINE_STRIP);
-	for (float i = -5; i < -0.19; i += 0.01) {
-		vec3 pointH = ihToH(vec2( i, 1/i));
+	for (GLfloat i = -5; i < -0.19; i += 0.01) {
+		
+		vec3 pointH = ihToH(vec2(i, 1 / i));
 		vec3 rotatedPointH = wTv * pointH;
 		if (rotatedPointH.z != 0) {
 			vec2 result = hToIh(rotatedPointH);
 			glVertex2f(result.x, result.y);
-			//cout << result.x << " " << result.y << endl;
 		}
+		
 	}
 	glEnd();
 	glBegin(GL_LINE_STRIP);
-	for (float i = 0.2; i < 5; i += 0.01) {
+	for (GLfloat i = 0.2; i < 5; i += 0.01) {
 		vec3 pointH = ihToH(vec2(i, 1 / i));
 		vec3 rotatedPointH = wTv * pointH;
 		if (rotatedPointH.z != 0) {
@@ -104,7 +102,9 @@ void secondFunction() {
 }
 
 void thirdFunction() {
-	wTv = windowToViewport2(vec2(-2*pi(), -2 * pi()), vec2(2 * 2 * pi(), 2 * 2 * pi()), vec2(10, winHeight / 2 - 10), viewportSize);
+	coordSystem(vec2(10, 10));
+	//
+	wTv = windowToViewport2(vec2(-2 * pi(), -2 * pi()), vec2(4 * pi(), 4 * pi()), vec2(10, 10), viewportSize);
 	glColor3f(0.0, 1.0, 0.0);
 	glBegin(GL_LINE_STRIP);
 	for (float i = -2 * pi(); i < 2 * pi(); i += 0.01) {
@@ -131,8 +131,9 @@ void thirdFunction() {
 }
 
 void fourthFunction() {
-	//wTv = windowToViewport2(windowPosition, windowSize, viewportPosition, viewportSize);
 	/*
+		wTv = windowToViewport2(windowPosition, windowSize, viewportPosition, viewportSize);
+	
 		vec2 points[4] = { {100, 100}, {-100, 100}, {-100, -100}, {100, -100} };
 
 		vec2 windowPosition = { -100, -100 };
@@ -141,8 +142,10 @@ void fourthFunction() {
 		windowPosition: bal alsó sarok
 		windowSize: két sarok távolsága 
 	*/
-	glLineWidth(1.0);
-	wTv = windowToViewport2(vec2(-1.5*pi() + -2.5 * pi(), -1.5*pi()+ -2.5 * pi()), vec2(2 * (1.5 * pi() + 2.5 * pi()), 2 * (1.5 * pi() + 2.5 * pi())), vec2(10, winHeight / 2 - 10), viewportSize);
+	
+	coordSystem(vec2(winWidth / 2 + 10, 10));
+	//
+	wTv = windowToViewport2(vec2(-1.5*pi() + -2.5 * pi(), -1.5*pi()+ -2.5 * pi()), vec2(2 * (1.5 * pi() + 2.5 * pi()), 2 * (1.5 * pi() + 2.5 * pi())), vec2(winWidth / 2 + 10, 10), viewportSize);
 	glColor3f(0.0, 1.0, 1.0);
 	glBegin(GL_LINE_STRIP);
 	for (float i = -1.5 * pi(); i < 2.5 * pi(); i += 0.01) {
@@ -159,10 +162,9 @@ void fourthFunction() {
 
 void display() {
 	glClear(GL_COLOR_BUFFER_BIT);
-	drawCoordSystem();
-	//firstFunction();
-	//secondFunction();
-	//thirdFunction();
+	firstFunction();
+	secondFunction();
+	thirdFunction();
 	fourthFunction();
 	glutSwapBuffers();
 }
