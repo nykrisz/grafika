@@ -6,7 +6,7 @@
 
 using namespace std;
 
-GLsizei winWidth = 400, winHeight = 400;
+GLsizei winWidth = 600, winHeight = 600;
 
 int N = 8;
 vec3 cube[8] = { { -1,-1,-1 },{ 1,-1,-1 },{ 1,1,-1 },{ -1,1,-1 },{ -1,-1,1 },{ 1,-1,1 },{ 1,1,1 },{ -1,1,1 } };
@@ -15,29 +15,39 @@ vec2 drawableCube[8] = {};
 GLint keyStates[256];
 GLint dragged = -1;
 
-mat4 w2v, projection;
+mat4 projection, w2v;
 float alpha = 0;
 float beta = 0;
-float c = 3;
+float c = 20;
 
-vec2 viewportPosition = { 100, 100 };
-vec2 windowSize = { 4, 4 };
-vec2 windowPosition = { -2, -2 };
-vec2 viewportSize = { 200 , 200 };
+vec2 viewportPosition = { 70, 100 };
+vec2 windowSize = { 2, 2 };
+vec2 windowPosition = { -1, -1 };
+vec2 viewportSize = { 150 , 150 };
 
 vec2 clickXY = {}, draggedXY = {}, eltolasvektor = { 0,0 }, elozoEltolasVektor;
-mat3 eltolasMatrix;
 
-vec2 felezoA = {float(winWidth / 2), float(0)};
+vec2 felezoA = {float(winWidth / 2), 0.0f};
 vec2 felezoF = { float(winWidth / 2), float(winHeight) };
 
 vec2 metszesPont;
+
+void init() {
+	glClearColor(1.0, 1.0, 1.0, 0.0);
+	glMatrixMode(GL_PROJECTION);
+	gluOrtho2D(0.0, winWidth, 0.0, winHeight);
+	glShadeModel(GL_FLAT);
+	glEnable(GL_POINT_SMOOTH);
+	glPointSize(5.0);
+	glLineWidth(1.0);
+	w2v = windowToViewport3(windowPosition, windowSize, viewportPosition, viewportSize);
+}
 
 void transform(mat4 proj) {
 	w2v = windowToViewport3(windowPosition, windowSize, viewportPosition, viewportSize);
 	mat4 rotation = rotateX(degToRad(alpha))* rotateY(degToRad(beta));
 
-	eltolasMatrix = translate(eltolasvektor);
+	mat3 eltolasMatrix = translate(eltolasvektor);
 
 	mat4 M = w2v * proj * rotation;
 
@@ -58,36 +68,6 @@ void transform(mat4 proj) {
 		}
 	}
 }
-
-void init() {
-	glClearColor(1.0, 1.0, 1.0, 0.0);
-	glMatrixMode(GL_PROJECTION);
-	gluOrtho2D(0.0, winWidth, 0.0, winHeight);
-	glShadeModel(GL_FLAT);
-	glEnable(GL_POINT_SMOOTH);
-	glPointSize(5.0);
-	glLineWidth(1.0);
-	w2v = windowToViewport3(windowPosition, windowSize, viewportPosition, viewportSize);
-}
-
-//void drawFaces(GLint n1, GLint n2, GLint n3, GLint n4) {
-//	glColor3f(0.0, 0.0, 0.0);
-//	glBegin(GL_LINE_LOOP);
-//	glVertex2f(drawableCube[n1].x, drawableCube[n1].y);
-//	glVertex2f(drawableCube[n2].x, drawableCube[n2].y);
-//	glVertex2f(drawableCube[n3].x, drawableCube[n3].y);
-//	glVertex2f(drawableCube[n4].x, drawableCube[n4].y);
-//	glEnd();
-//}
-//
-//void drawCube() {
-//	drawFaces(0, 1, 2, 3);
-//	drawFaces(1, 5, 6, 2);
-//	drawFaces(5, 4, 7, 6);
-//	drawFaces(4, 0, 3, 7);
-//	drawFaces(4, 5, 1, 0);
-//	drawFaces(3, 2, 6, 7);
-//}
 
 void leftSide() {
 	glColor3f(0.0, 1.0, 0.0);
@@ -119,7 +99,6 @@ double pointWhichSide(vec2 vizsgalt) {
 	return a * vizsgalt.x + b * vizsgalt.y + c;
 }
 
-
 vec2 calcMetszesPont(vec2 p1, vec2 p2) {
 	vec3 felezoAlso = ihToH(felezoA);
 	vec3 felezoFelso = ihToH(felezoF);
@@ -141,23 +120,23 @@ void elek(GLint n1, GLint n2) {
 	
 	glBegin(GL_LINES);
 	transform(ortho());
+	//megnézem, hogy más oldalon vannak-e
+	if ((pointWhichSide(drawableCube[n1]) >= 0) && pointWhichSide(drawableCube[n2]) <= 0) {
+		//ha igen, akkor csak metszéspontig rajzolom
+		glColor3f(1.0, 0.0, 0.0);
+		glVertex2f(drawableCube[n1].x, drawableCube[n1].y);
+		glVertex2f(calcMetszesPont(drawableCube[n1], drawableCube[n2]).x, calcMetszesPont(drawableCube[n1], drawableCube[n2]).y);
 
-		if ((pointWhichSide(drawableCube[n1]) > 0) && pointWhichSide(drawableCube[n2]) < 0) {
+	}
+	else if((pointWhichSide(drawableCube[n1]) > 0) && pointWhichSide(drawableCube[n2]) > 0){
 
-			glColor3f(1.0, 0.0, 0.0);
-			glVertex2f(drawableCube[n1].x, drawableCube[n1].y);
-			glVertex2f(calcMetszesPont(drawableCube[n1], drawableCube[n2]).x, calcMetszesPont(drawableCube[n1], drawableCube[n2]).y);
-
-		}
-		else if((pointWhichSide(drawableCube[n1]) > 0) && pointWhichSide(drawableCube[n2]) > 0){
-
-			glColor3f(0.0, 0.0, 0.0);
-			glVertex2f(drawableCube[n1].x, drawableCube[n1].y);
-			glVertex2f(drawableCube[n2].x, drawableCube[n2].y);
-		}
+		glColor3f(0.0, 0.0, 0.0);
+		glVertex2f(drawableCube[n1].x, drawableCube[n1].y);
+		glVertex2f(drawableCube[n2].x, drawableCube[n2].y);
+	}
 	glEnd();
 
-	////bal
+	////jobb
 	glBegin(GL_LINES);
 	transform(perspective(c));
 
@@ -178,7 +157,7 @@ void elek(GLint n1, GLint n2) {
 
 }
 
-void drawcumo() {
+void draw() {
 	elek(0, 4);
 	elek(0, 1);
 	elek(0, 3);
@@ -210,7 +189,6 @@ void drawcumo() {
 	elek(7, 3);
 	elek(7, 4);
 	elek(7, 6);
-
 }
 
 void display() {
@@ -218,8 +196,8 @@ void display() {
 
 	leftSide();
 	rightSide();
-	//drawCube();
-	drawcumo();
+	
+	draw();
 
 	glutSwapBuffers();
 }
@@ -244,10 +222,6 @@ void keyOperations(int value)
 
 	if (keyStates['+']) { c += 0.01; }
 	if (keyStates['-']) { c -= 0.01; }
-
-	if (keyStates['p']) {
-		
-	} 
 
 	glutPostRedisplay();
 
