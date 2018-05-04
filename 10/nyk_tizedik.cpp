@@ -9,26 +9,33 @@ using namespace std;
 
 GLsizei winWidth = 600, winHeight = 600;
 
-GLfloat center = 10.0f, deltaCenter = 0.5f;
+GLfloat center = 10.0f;
 GLfloat delta_u = 0.1, delta_theta = pi() / 10;
-GLfloat alphaZ = 0.0f, alphaX = 10.0f, alphaY = 30.0f;
 
-mat4 M, T, rotation, w2v;
+mat4 M, rotation, w2v, Ct;
 mat4 projection = perspective(center);
 
 GLint keyStates[256];
-GLint n = 5;
 
-vec2 tmp[6] = { vec2(0,0), vec2(3,1), vec2(3,4), vec2(1,4), vec2(1,6), vec2(3,6.5) };
+GLint n = 5;
+vec2 tmp[6] = { vec2(0.01,0.01), vec2(4,0.1), vec2(3,4), vec2(1,4), vec2(1,6), vec2(3,6.5) };
+
+GLfloat camHeight = 0.0f, basicCircleRadius = 5.0f, alpha = 0.0f;
+vec3 cameraX, cameraY, cameraZ, up = { 0.0f, 1.0f, 0.0f }, target = { 0.0f, 0.0f, 0.0f }, eye;
+//eye - honnan
+//target - hová
+
+GLfloat light_x = 1.0f, light_y = 0.0f, light_z = 0.0f;
+vec3 light = { light_x, light_y, light_z };
 
 struct Face {
 	vec3 p[4];
-	vec3 middlePoint;
+	vec3 middlePoint, normVec, rgb;
 	float distance;
 
-	void drawFace() {
+	void drawFace(vec3 rgb) {
 		glLineWidth(2.0f);
-		glColor3f(1.0, 1.0, 1.0);
+		glColor3f(rgb.x, rgb.y, rgb.z);
 		glBegin(GL_POLYGON);
 		for (int i = 0; i < 4; i++) {
 			vec4 hPoint = ihToH(p[i]);
@@ -39,9 +46,21 @@ struct Face {
 		glEnd();
 	}
 
-	void visibility() {
-		middlePoint = (hToIh(T * ihToH(p[0])) + hToIh(T * ihToH(p[1])) + hToIh(T * ihToH(p[2])) + hToIh(T * ihToH(p[3]))) / 4.0;
+	void weights() {
+		middlePoint = (hToIh(Ct * ihToH(p[0])) + hToIh(Ct * ihToH(p[1])) + hToIh(Ct * ihToH(p[2])) + hToIh(Ct * ihToH(p[3]))) / 4.0;
 		distance = dist(vec3(0.0f, 0.0f, center), middlePoint);
+	}
+	
+	void visibility() {
+		vec4 hVector1 = ihToH(p[1] - p[0]), hVector2 = ihToH(p[2] - p[0]);
+		normVec = cross(normalize(hToIh(hVector1)), normalize(hToIh(hVector2)));
+	}
+
+	void setColor() {
+		float cl;
+		cl = (dot(normalize(normVec), normalize(light)));
+		cl = (cl + 1.0) / 2.0;
+		rgb = vec3(cl, cl, cl);
 	}
 
 };
@@ -70,12 +89,16 @@ vec2 bernstein(float u) {
 }
 
 void initTransformations() {
-	rotation = rotateX(degToRad(alphaX)) * rotateY(degToRad(alphaY));
-	w2v = windowToViewport3(vec2(0,0), vec2(2 * pi(), 2 * pi()), vec2(250.0f, 70.0f), vec2(250.0f, 250.0f));
+	
+	eye = vec3(basicCircleRadius * cos(alpha), camHeight, -basicCircleRadius * sin(alpha));
+	cameraZ = normalize( -(target - eye) ); //eye-target
+	cameraX = normalize(cross(up, cameraZ));
+	cameraY = normalize(cross(cameraZ, cameraX));
+	Ct = coordinateTransform(eye, cameraX, cameraY, cameraZ);
 
-	M = w2v * projection * rotation;
+	w2v = windowToViewport3(vec2(0,0), vec2(7, 7), vec2(300.0f, 100.0f), vec2(winWidth, winHeight));
 
-	T = rotation;
+	M = w2v * projection * Ct;
 }
 
 void setPoints() {
@@ -139,22 +162,24 @@ bool sortFaces(Face f1, Face f2) {
 void display() {
 	glClear(GL_COLOR_BUFFER_BIT);
 	for (unsigned int i = 0; i < faces.size(); i++) {
+		faces.at(i).weights();
 		faces.at(i).visibility();
 	}
 
 	sort(faces.begin(), faces.end(), sortFaces);
 
 	for (unsigned int i = 0; i < faces.size(); i++) {
-		faces.at(i).drawFace();
-		glColor3f(0.0f, 0.0f, 0.0f);
-		glBegin(GL_LINE_LOOP);
-		for (unsigned int j = 0; j < 4; j++) {
-			vec4 tmp = ihToH(faces.at(i).p[j]);
-			tmp = M * tmp;
-			vec3 tmp2 = hToIh(tmp);
-			glVertex2d(tmp2.x, tmp2.y);
-		}
-		glEnd();
+			faces.at(i).setColor();
+			faces.at(i).drawFace(faces.at(i).rgb);
+			glColor3f(0.0f, 0.0f, 0.0f);
+			glBegin(GL_LINE_LOOP);
+			for (unsigned int j = 0; j < 4; j++) {
+				vec4 tmp = ihToH(faces.at(i).p[j]);
+				tmp = M * tmp;
+				vec3 tmp2 = hToIh(tmp);
+				glVertex2d(tmp2.x, tmp2.y);
+			}
+			glEnd();
 	}
 
 	glutSwapBuffers();
@@ -172,11 +197,14 @@ void keyUp(unsigned char key, int x, int y)
 
 void keyOperations(int value)
 {
-	if (keyStates['a']) { alphaY += 1; }
-	if (keyStates['d']) { alphaY -= 1; }
+	if (keyStates['a']) { alpha -= 0.01; }
+	if (keyStates['d']) { alpha += 0.01; }
+	
+	if (keyStates['s']) { camHeight -= 0.1; }
+	if (keyStates['w']) { camHeight += 0.1; }
 
-	if (keyStates['s']) { alphaX += 1; }
-	if (keyStates['w']) { alphaX -= 1; }
+	if (keyStates['r']) { basicCircleRadius += 0.1; }
+	if(keyStates['t']){ basicCircleRadius -= 0.1; }
 
 	faces.resize(0);
 	initTransformations();
@@ -194,7 +222,7 @@ int main(int argc, char** argv) {
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
 	glutInitWindowSize(winWidth, winHeight);
 	glutInitWindowPosition(100, 100);
-	glutCreateWindow("kilenc");
+	glutCreateWindow("tiz");
 	init();
 	glutDisplayFunc(display);
 
