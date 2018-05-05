@@ -18,7 +18,7 @@ mat4 projection = perspective(center);
 GLint keyStates[256];
 
 GLint n = 5;
-vec2 tmp[6] = { vec2(0.01,0.01), vec2(4,0.1), vec2(3,4), vec2(1,4), vec2(1,6), vec2(3,6.5) };
+vec2 tmp[6] = { vec2(1.0f, 0.0f), vec2(4,0.1), vec2(3,4), vec2(1,4), vec2(1,6), vec2(3,6.5) };
 
 GLfloat camHeight = 0.0f, basicCircleRadius = 5.0f, alpha = 0.0f;
 vec3 cameraX, cameraY, cameraZ, up = { 0.0f, 1.0f, 0.0f }, target = { 0.0f, 0.0f, 0.0f }, eye;
@@ -32,18 +32,31 @@ struct Face {
 	vec3 p[4];
 	vec3 middlePoint, normVec, rgb;
 	float distance;
+	bool isBottom = false;
 
 	void drawFace(vec3 rgb) {
 		glLineWidth(2.0f);
 		glColor3f(rgb.x, rgb.y, rgb.z);
-		glBegin(GL_POLYGON);
-		for (int i = 0; i < 4; i++) {
-			vec4 hPoint = ihToH(p[i]);
-			hPoint = M * hPoint;
-			vec3 ihDrawablePoint = hToIh(hPoint);
-			glVertex2d(ihDrawablePoint.x, ihDrawablePoint.y);
+		if (isBottom == false) {
+			glBegin(GL_POLYGON);
+			for (int i = 0; i < 4; i++) {
+				vec4 hPoint = ihToH(p[i]);
+				hPoint = M * hPoint;
+				vec3 ihDrawablePoint = hToIh(hPoint);
+				glVertex2d(ihDrawablePoint.x, ihDrawablePoint.y);
+			}
+			glEnd();
 		}
-		glEnd();
+		else {
+			glBegin(GL_TRIANGLES);
+			for (int i = 0; i < 3; i++) {
+				vec4 hPoint = ihToH(p[i]);
+				hPoint = M * hPoint;
+				vec3 ihDrawablePoint = hToIh(hPoint);
+				glVertex2d(ihDrawablePoint.x, ihDrawablePoint.y);
+			}
+			glEnd();
+		}
 	}
 
 	void weights() {
@@ -62,6 +75,26 @@ struct Face {
 		cl = (cl + 1.0) / 2.0;
 		rgb = vec3(cl, cl, cl);
 	}
+
+	/*void setColor() {
+		vec4 lightH = vec4(light, 0);
+		vec3 newLight = normalize(hToIh(transpose(inverse(Ct)) * lightH));
+
+		vec3 newNormal = hToIh(transpose(inverse(Ct)) * vec4(normVec,0));
+
+		if (dot(newNormal, vec3(0,0,center) ) > 0) {
+			float cl;
+			cl = (dot(normalize(newNormal), normalize(newLight)));
+			cl = (cl + 1.0) / 2.0;
+			rgb = vec3(cl, cl, cl);
+		}
+		else {
+			float cl;
+			cl = (dot(normalize(newNormal), normalize(newLight)));
+			cl = (cl + 1.0) / 2.0;
+			rgb = vec3(cl, cl, cl);
+		}
+	}*/
 
 };
 
@@ -102,20 +135,31 @@ void initTransformations() {
 }
 
 void setPoints() {
-	
-	for (float u = 0; u < 1; u += delta_u) {
+	vec3 bottom = bernstein(0.0f);
+
+	for (float u = 0.0f; u < 1.0f; u += delta_u) {
 
 		vec2 point = bernstein(u);
 		vec2 nextP = bernstein(u + delta_u);
 
 		for (float theta = 0; theta <= 2*pi(); theta += delta_theta) {
-			faces.resize(faces.size() + 1);
-			faces.at(faces.size() - 1).p[0] = vec3(cos(theta) * point.x, point.y, -sin(theta) * point.x);
-			faces.at(faces.size() - 1).p[1] = vec3(cos(theta + delta_theta) * point.x, point.y, -sin(theta + delta_theta) * point.x);
-			faces.at(faces.size() - 1).p[2] = vec3(cos(theta + delta_theta) * nextP.x, nextP.y, -sin(theta + delta_theta) * nextP.x);
-			faces.at(faces.size() - 1).p[3] = vec3(cos(theta) * nextP.x, nextP.y, -sin(theta) * nextP.x);
-
 			
+			faces.resize(faces.size() + 1);
+			
+			if (point == bottom) {
+
+				faces.at(faces.size() - 1).p[0] = vec3(cos(theta) * bottom.x, bottom.y, -sin(theta) * bottom.x);
+				faces.at(faces.size() - 1).p[1] = vec3(cos(theta + delta_theta) * bottom.x, bottom.y, -sin(theta + delta_theta) * bottom.x);
+				faces.at(faces.size() - 1).p[2] = vec3(0, 0, 0);
+				faces.at(faces.size() - 1).isBottom = true;
+				faces.resize(faces.size() + 1);
+			}
+				
+				faces.at(faces.size() - 1).p[0] = vec3(cos(theta) * point.x, point.y, -sin(theta) * point.x);
+				faces.at(faces.size() - 1).p[1] = vec3(cos(theta + delta_theta) * point.x, point.y, -sin(theta + delta_theta) * point.x);
+				faces.at(faces.size() - 1).p[2] = vec3(cos(theta + delta_theta) * nextP.x, nextP.y, -sin(theta + delta_theta) * nextP.x);
+				faces.at(faces.size() - 1).p[3] = vec3(cos(theta) * nextP.x, nextP.y, -sin(theta) * nextP.x);
+				
 			/* átláthatóság kedvéért
 			float p0x = cos(theta) * point.x;
 			float p0y = point.y;
@@ -167,19 +211,31 @@ void display() {
 	}
 
 	sort(faces.begin(), faces.end(), sortFaces);
-
+	
 	for (unsigned int i = 0; i < faces.size(); i++) {
 			faces.at(i).setColor();
 			faces.at(i).drawFace(faces.at(i).rgb);
 			glColor3f(0.0f, 0.0f, 0.0f);
-			glBegin(GL_LINE_LOOP);
-			for (unsigned int j = 0; j < 4; j++) {
-				vec4 tmp = ihToH(faces.at(i).p[j]);
-				tmp = M * tmp;
-				vec3 tmp2 = hToIh(tmp);
-				glVertex2d(tmp2.x, tmp2.y);
+			if (faces.at(i).isBottom == false) {
+				glBegin(GL_LINE_LOOP);
+				for (unsigned int j = 0; j < 4; j++) {
+					vec4 tmp = ihToH(faces.at(i).p[j]);
+					tmp = M * tmp;
+					vec3 tmp2 = hToIh(tmp);
+					glVertex2d(tmp2.x, tmp2.y);
+				}
+				glEnd();
 			}
-			glEnd();
+			else {
+				glBegin(GL_LINE_LOOP);
+				for (unsigned int j = 0; j < 3; j++) {
+					vec4 tmp = ihToH(faces.at(i).p[j]);
+					tmp = M * tmp;
+					vec3 tmp2 = hToIh(tmp);
+					glVertex2d(tmp2.x, tmp2.y);
+				}
+				glEnd();
+			}
 	}
 
 	glutSwapBuffers();
