@@ -21,7 +21,7 @@ GLint n = 5;
 //vec2 tmp[6] = { vec2(1.0f, 0.0f), vec2(4,0.1), vec2(3,4), vec2(1,4), vec2(1,6), vec2(3,6.5) };
 vec2 tmp[6] = { vec2(2, 0), vec2(4,1), vec2(5,4), vec2(1,4), vec2(1,6.5), vec2(3,6.5) };
 
-GLfloat camHeight = 1.0f, basicCircleRadius = 6.0f, alpha = 0.0f;
+GLfloat camHeight = 1.0f, basicCircleRadius = 6.0f, alpha = 5.0f;
 vec3 cameraX, cameraY, cameraZ, up = { 0.0f, 1.0f, 0.0f }, target = { 0.0f, 0.0f, 0.0f }, eye;
 //eye - honnan
 //target - hová
@@ -32,12 +32,11 @@ vec3 light = { light_x, light_y, light_z };
 struct Face {
 	vec3 p[4];
 	vec3 middlePoint, normVec, rgb;
+	vec3 newLight;
 
 	float distance;
 	bool isBottom = false;
-
-	vec3 newCenter;
-
+	
 	void drawFace(vec3 rgb) {
 		glLineWidth(2.0f);
 		glColor3f(rgb.x, rgb.y, rgb.z);
@@ -67,35 +66,31 @@ struct Face {
 		middlePoint = (hToIh(Ct * ihToH(p[0])) + hToIh(Ct * ihToH(p[1])) + hToIh(Ct * ihToH(p[2])) + hToIh(Ct * ihToH(p[3]))) / 4.0;
 		distance = dist(vec3(0.0f, 0.0f, center), middlePoint);
 	}
-	
+
 	void visibility() {
 		vec4 hVector1 = ihToH(p[1] - p[0]), hVector2 = ihToH(p[2] - p[0]);
 		normVec = cross(normalize(hToIh(hVector1)), normalize(hToIh(hVector2)));
-		newCenter = normalize(hToIh(transpose(inverse(Ct)) * vec4(vec3(0,0,center))));
 	}
 
 	void setColor() {
 		float cl;
-		cl = (dot(normalize(normVec), normalize(light)));
-		cl = (cl + 1.0) / 2.0;
-		rgb = vec3(cl, cl, cl);
-	}
-
-	/*void setColor() {
-		vec4 lightH = vec4(light, 0);
-		vec3 newLight = normalize(hToIh(transpose(inverse(Ct)) * lightH));
-		if (dot(normVec, newCenter)  > 0) {
-			float cl;
-			cl = (dot(normalize(normVec), normalize(newLight)));
+		if (dot(normalize(normVec), normalize(vec3(0, 0, center))) > 0) {
+			cl = (dot(normalize(normVec), normalize(light)));
 			cl = (cl + 1.0) / 2.0;
 			rgb = vec3(cl, cl, cl);
 		}
 		else {
-			float cl;
-			cl = (dot(normalize(normVec), normalize(newLight)));
+			cl = (dot(normalize(-normVec), normalize(light)));
 			cl = (cl + 1.0) / 2.0;
 			rgb = vec3(cl, cl, cl);
 		}
+	}
+
+	/*void setColor() {
+		float cl;
+		cl = (dot(normalize(normVec), normalize(light)));
+		cl = (cl + 1.0) / 2.0;
+		rgb = vec3(cl, cl, cl);
 	}*/
 
 };
@@ -215,29 +210,30 @@ void display() {
 	sort(faces.begin(), faces.end(), sortFaces);
 	
 	for (unsigned int i = 0; i < faces.size(); i++) {
-			faces.at(i).setColor();
-			faces.at(i).drawFace(faces.at(i).rgb);
-			glColor3f(0.0f, 0.0f, 0.0f);
-			if (faces.at(i).isBottom == false) {
-				glBegin(GL_LINE_LOOP);
-				for (unsigned int j = 0; j < 4; j++) {
-					vec4 tmp = ihToH(faces.at(i).p[j]);
-					tmp = M * tmp;
-					vec3 tmp2 = hToIh(tmp);
-					glVertex2d(tmp2.x, tmp2.y);
-				}
-				glEnd();
+		faces.at(i).setColor();
+		faces.at(i).drawFace(faces.at(i).rgb);
+		glColor3f(0.0f, 0.0f, 0.0f);
+		if (faces.at(i).isBottom == false) {
+			glBegin(GL_LINE_LOOP);
+			for (unsigned int j = 0; j < 4; j++) {
+				vec4 tmp = ihToH(faces.at(i).p[j]);
+				tmp = M * tmp;
+				vec3 tmp2 = hToIh(tmp);
+				glVertex2d(tmp2.x, tmp2.y);
 			}
-			else {
-				glBegin(GL_LINE_LOOP);
-				for (unsigned int j = 0; j < 3; j++) {
-					vec4 tmp = ihToH(faces.at(i).p[j]);
-					tmp = M * tmp;
-					vec3 tmp2 = hToIh(tmp);
-					glVertex2d(tmp2.x, tmp2.y);
-				}
-				glEnd();
+			glEnd();
+		}
+		else {
+			glBegin(GL_LINE_LOOP);
+			for (unsigned int j = 0; j < 3; j++) {
+				vec4 tmp = ihToH(faces.at(i).p[j]);
+				tmp = M * tmp;
+				vec3 tmp2 = hToIh(tmp);
+				glVertex2d(tmp2.x, tmp2.y);
 			}
+			glEnd();
+		}
+
 	}
 
 	glutSwapBuffers();
