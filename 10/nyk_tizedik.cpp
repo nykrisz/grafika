@@ -18,9 +18,10 @@ mat4 projection = perspective(center);
 GLint keyStates[256];
 
 GLint n = 5;
-vec2 tmp[6] = { vec2(1.0f, 0.0f), vec2(4,0.1), vec2(3,4), vec2(1,4), vec2(1,6), vec2(3,6.5) };
+//vec2 tmp[6] = { vec2(1.0f, 0.0f), vec2(4,0.1), vec2(3,4), vec2(1,4), vec2(1,6), vec2(3,6.5) };
+vec2 tmp[6] = { vec2(2, 0), vec2(4,1), vec2(5,4), vec2(1,4), vec2(1,6.5), vec2(3,6.5) };
 
-GLfloat camHeight = 0.0f, basicCircleRadius = 5.0f, alpha = 0.0f;
+GLfloat camHeight = 1.0f, basicCircleRadius = 6.0f, alpha = 0.0f;
 vec3 cameraX, cameraY, cameraZ, up = { 0.0f, 1.0f, 0.0f }, target = { 0.0f, 0.0f, 0.0f }, eye;
 //eye - honnan
 //target - hová
@@ -31,8 +32,11 @@ vec3 light = { light_x, light_y, light_z };
 struct Face {
 	vec3 p[4];
 	vec3 middlePoint, normVec, rgb;
+
 	float distance;
 	bool isBottom = false;
+
+	vec3 newCenter;
 
 	void drawFace(vec3 rgb) {
 		glLineWidth(2.0f);
@@ -67,6 +71,7 @@ struct Face {
 	void visibility() {
 		vec4 hVector1 = ihToH(p[1] - p[0]), hVector2 = ihToH(p[2] - p[0]);
 		normVec = cross(normalize(hToIh(hVector1)), normalize(hToIh(hVector2)));
+		newCenter = normalize(hToIh(transpose(inverse(Ct)) * vec4(vec3(0,0,center))));
 	}
 
 	void setColor() {
@@ -79,18 +84,15 @@ struct Face {
 	/*void setColor() {
 		vec4 lightH = vec4(light, 0);
 		vec3 newLight = normalize(hToIh(transpose(inverse(Ct)) * lightH));
-
-		vec3 newNormal = hToIh(transpose(inverse(Ct)) * vec4(normVec,0));
-
-		if (dot(newNormal, vec3(0,0,center) ) > 0) {
+		if (dot(normVec, newCenter)  > 0) {
 			float cl;
-			cl = (dot(normalize(newNormal), normalize(newLight)));
+			cl = (dot(normalize(normVec), normalize(newLight)));
 			cl = (cl + 1.0) / 2.0;
 			rgb = vec3(cl, cl, cl);
 		}
 		else {
 			float cl;
-			cl = (dot(normalize(newNormal), normalize(newLight)));
+			cl = (dot(normalize(normVec), normalize(newLight)));
 			cl = (cl + 1.0) / 2.0;
 			rgb = vec3(cl, cl, cl);
 		}
