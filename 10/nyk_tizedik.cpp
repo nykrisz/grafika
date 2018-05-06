@@ -9,14 +9,13 @@ using namespace std;
 
 GLsizei winWidth = 600, winHeight = 600;
 
-GLfloat center = 10.0f;
-GLfloat delta_u = 0.1, delta_theta = pi() / 10;
+GLfloat center = 5.0f;
+GLfloat delta_u = 1.0f / 10.0f, delta_theta = pi() / 8;
 
-mat4 M, rotation, w2v, Ct;
+mat4 M, w2v, Ct;
 mat4 projection = perspective(center);
 
 GLint keyStates[256];
-
 GLint n = 5;
 //vec2 tmp[6] = { vec2(1.0f, 0.0f), vec2(4,0.1), vec2(3,4), vec2(1,4), vec2(1,6), vec2(3,6.5) };
 vec2 tmp[6] = { vec2(2, 0), vec2(4,1), vec2(5,4), vec2(1,4), vec2(1,6.5), vec2(3,6.5) };
@@ -31,14 +30,11 @@ vec3 light = { light_x, light_y, light_z };
 
 struct Face {
 	vec3 p[4];
-	vec3 middlePoint, normVec, rgb;
-	vec3 newLight;
-
+	vec3 middlePoint, rgb;
 	float distance;
 	bool isBottom = false;
 	
 	void drawFace(vec3 rgb) {
-		glLineWidth(2.0f);
 		glColor3f(rgb.x, rgb.y, rgb.z);
 		if (isBottom == false) {
 			glBegin(GL_POLYGON);
@@ -67,31 +63,24 @@ struct Face {
 		distance = dist(vec3(0.0f, 0.0f, center), middlePoint);
 	}
 
-	void visibility() {
-		vec4 hVector1 = ihToH(p[1] - p[0]), hVector2 = ihToH(p[2] - p[0]);
-		normVec = cross(normalize(hToIh(hVector1)), normalize(hToIh(hVector2)));
-	}
-
 	void setColor() {
 		float cl;
-		if (dot(normalize(normVec), normalize(vec3(0, 0, center))) > 0) {
-			cl = (dot(normalize(normVec), normalize(light)));
+		vec3 hVector1 = hToIh(Ct * ihToH(p[1])) - hToIh(Ct * ihToH(p[0]));
+		vec3 hVector2 = hToIh(Ct * ihToH(p[2])) - hToIh(Ct * ihToH(p[0]));
+		vec3 newNormal = cross(normalize(hVector1), normalize(hVector2));
+		vec3 p1 = hToIh(Ct * ihToH(p[0]));
+
+		if (dot(normalize(newNormal), normalize(vec3(0, 0, center) - p1)) > 0) {
+			cl = (dot(normalize(newNormal), normalize(Ct * vec4(light,0))));
 			cl = (cl + 1.0) / 2.0;
 			rgb = vec3(cl, cl, cl);
 		}
 		else {
-			cl = (dot(normalize(-normVec), normalize(light)));
+			cl = (dot(normalize(-newNormal), normalize(Ct * vec4(light,0))));
 			cl = (cl + 1.0) / 2.0;
 			rgb = vec3(cl, cl, cl);
 		}
 	}
-
-	/*void setColor() {
-		float cl;
-		cl = (dot(normalize(normVec), normalize(light)));
-		cl = (cl + 1.0) / 2.0;
-		rgb = vec3(cl, cl, cl);
-	}*/
 
 };
 
@@ -152,12 +141,12 @@ void setPoints() {
 				faces.resize(faces.size() + 1);
 			}
 				
-				faces.at(faces.size() - 1).p[0] = vec3(cos(theta) * point.x, point.y, -sin(theta) * point.x);
-				faces.at(faces.size() - 1).p[1] = vec3(cos(theta + delta_theta) * point.x, point.y, -sin(theta + delta_theta) * point.x);
-				faces.at(faces.size() - 1).p[2] = vec3(cos(theta + delta_theta) * nextP.x, nextP.y, -sin(theta + delta_theta) * nextP.x);
-				faces.at(faces.size() - 1).p[3] = vec3(cos(theta) * nextP.x, nextP.y, -sin(theta) * nextP.x);
+			faces.at(faces.size() - 1).p[0] = vec3(cos(theta) * point.x, point.y, -sin(theta) * point.x);
+			faces.at(faces.size() - 1).p[1] = vec3(cos(theta + delta_theta) * point.x, point.y, -sin(theta + delta_theta) * point.x);
+			faces.at(faces.size() - 1).p[2] = vec3(cos(theta + delta_theta) * nextP.x, nextP.y, -sin(theta + delta_theta) * nextP.x);
+			faces.at(faces.size() - 1).p[3] = vec3(cos(theta) * nextP.x, nextP.y, -sin(theta) * nextP.x);
 				
-			/* átláthatóság kedvéért
+			/*
 			float p0x = cos(theta) * point.x;
 			float p0y = point.y;
 			float p0z = -sin(theta) * point.x;
@@ -190,7 +179,6 @@ void init() {
 	gluOrtho2D(0.0, winWidth, 0.0, winHeight);
 	glShadeModel(GL_FLAT);
 	glEnable(GL_POINT_SMOOTH);
-	glPointSize(5.0);
 	glLineWidth(1.0);
 	initTransformations();
 	setPoints();
@@ -202,20 +190,19 @@ bool sortFaces(Face f1, Face f2) {
 
 void display() {
 	glClear(GL_COLOR_BUFFER_BIT);
-	for (unsigned int i = 0; i < faces.size(); i++) {
+	for (int i = 0; i < faces.size(); i++) {
 		faces.at(i).weights();
-		faces.at(i).visibility();
 	}
 
 	sort(faces.begin(), faces.end(), sortFaces);
-	
-	for (unsigned int i = 0; i < faces.size(); i++) {
+
+	for (int i = 0; i < faces.size(); i++) {
 		faces.at(i).setColor();
 		faces.at(i).drawFace(faces.at(i).rgb);
 		glColor3f(0.0f, 0.0f, 0.0f);
 		if (faces.at(i).isBottom == false) {
 			glBegin(GL_LINE_LOOP);
-			for (unsigned int j = 0; j < 4; j++) {
+			for (int j = 0; j < 4; j++) {
 				vec4 tmp = ihToH(faces.at(i).p[j]);
 				tmp = M * tmp;
 				vec3 tmp2 = hToIh(tmp);
@@ -225,7 +212,7 @@ void display() {
 		}
 		else {
 			glBegin(GL_LINE_LOOP);
-			for (unsigned int j = 0; j < 3; j++) {
+			for (int j = 0; j < 3; j++) {
 				vec4 tmp = ihToH(faces.at(i).p[j]);
 				tmp = M * tmp;
 				vec3 tmp2 = hToIh(tmp);
@@ -251,38 +238,37 @@ void keyUp(unsigned char key, int x, int y)
 
 void keyOperations(int value)
 {
-	if (keyStates['a']) { alpha -= 0.01; }
-	if (keyStates['d']) { alpha += 0.01; }
+	if (keyStates['a']) { alpha -= pi()/180; }
+	if (keyStates['d']) { alpha += pi()/180; }
 	
 	if (keyStates['s']) { camHeight -= 0.1; }
 	if (keyStates['w']) { camHeight += 0.1; }
 
 	if (keyStates['r']) { basicCircleRadius += 0.1; }
-	if(keyStates['t']){ basicCircleRadius -= 0.1; }
+	if(keyStates['t']){ basicCircleRadius -= 0.1; }	
 
 	faces.resize(0);
 	initTransformations();
 	setPoints();
 
-	glutTimerFunc(1, keyOperations, 0);
+	glutTimerFunc(5, keyOperations, 0);
 
 	glutPostRedisplay();
 
 }
 
-
 int main(int argc, char** argv) {
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
 	glutInitWindowSize(winWidth, winHeight);
-	glutInitWindowPosition(100, 100);
+	glutInitWindowPosition(100, 50);
 	glutCreateWindow("tiz");
 	init();
 	glutDisplayFunc(display);
 
 	glutKeyboardFunc(keyPressed);
 	glutKeyboardUpFunc(keyUp);
-	glutTimerFunc(1, keyOperations, 0);
+	glutTimerFunc(5, keyOperations, 0);
 
 	glutMainLoop();
 	return 0;
